@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: microservice
-          image: pwctask.azurecr.io/microservice:v1
+          image: ${ACR_LOGIN_SERVER}/${IMAGE_NAME}:${VERSION}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
