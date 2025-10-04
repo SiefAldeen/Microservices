@@ -12,7 +12,7 @@ env:
   IMAGE_NAME: microservice
   AKS_CLUSTER_NAME: pwctask-aks
   AKS_RESOURCE_GROUP: Microservices
-  DEPLOYMENT_NAME: Microservices
+  DEPLOYMENT_NAME: microservice
   NAMESPACE: default
 
 jobs:
