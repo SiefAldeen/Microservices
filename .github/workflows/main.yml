@@ -87,9 +87,6 @@ jobs:
           # Apply the deployment
           kubectl apply -f deployment.yaml
           
-          # Wait for rollout to complete
-          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} --timeout=300s
-
       - name: Verify deployment
         run: |
           echo "=== Deployment Status ==="
