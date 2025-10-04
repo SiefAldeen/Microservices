@@ -11,7 +11,7 @@ env:
   ACR_LOGIN_SERVER: pwctask.azurecr.io
   IMAGE_NAME: microservice
   AKS_CLUSTER_NAME: pwctask-aks
-  AKS_RESOURCE_GROUP: your-resource-group
+  AKS_RESOURCE_GROUP: Microservices
   DEPLOYMENT_NAME: Microservices
   NAMESPACE: default
 
