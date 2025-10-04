@@ -70,8 +70,6 @@ jobs:
           tags: |
             ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.get-version.outputs.version }}
             ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
       - name: Set AKS context
         uses: azure/aks-set-context@v4
@@ -81,19 +79,17 @@ jobs:
 
       - name: Deploy using your deployment.yaml
         run: |
-          # Update image in deployment.yaml to use the new version
-          sed -i "s|image:.*microservice.*|image: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.get-version.outputs.version }}|g" deployment.yaml
+          # Replace variables in deployment.yaml
+          sed -i "s|\${ACR_LOGIN_SERVER}|${{ env.ACR_LOGIN_SERVER }}|g" deployment.yaml
+          sed -i "s|\${IMAGE_NAME}|${{ env.IMAGE_NAME }}|g" deployment.yaml
+          sed -i "s|\${VERSION}|${{ steps.get-version.outputs.version }}|g" deployment.yaml
           
           # Apply the deployment
           kubectl apply -f deployment.yaml
           
+
       - name: Verify deployment
         run: |
-          echo "=== Deployment Status ==="
-          kubectl get deployment -n ${{ env.NAMESPACE }}
+          echo "Current deployment image:"
+          kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -o jsonpath='{.spec.template.spec.containers[0].image}'
           echo ""
-          echo "=== Pods Status ==="
-          kubectl get pods -n ${{ env.NAMESPACE }}
-          echo ""
-          echo "=== Service Status ==="
-          kubectl get service -n ${{ env.NAMESPACE }}
