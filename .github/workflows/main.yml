@@ -5,15 +5,6 @@ on:
     branches:
       - main
 
-env:
-  ACR_NAME: pwctask
-  ACR_LOGIN_SERVER: pwctask.azurecr.io
-  IMAGE_NAME: microservice
-  AKS_CLUSTER_NAME: pwctask-aks
-  AKS_RESOURCE_GROUP: Microservices
-  DEPLOYMENT_NAME: microservice
-  NAMESPACE: default
-
 jobs:
   build-push-deploy:
     name: Build, Push & Deploy
@@ -31,10 +22,10 @@ jobs:
       - name: Get latest version from ACR
         id: get-version
         run: |
-          az acr login --name ${{ env.ACR_NAME }}
+          az acr login --name ${{ vars.ACR_NAME }}
           TAGS=$(az acr repository show-tags \
-            --name ${{ env.ACR_NAME }} \
-            --repository ${{ env.IMAGE_NAME }} \
+            --name ${{ vars.ACR_NAME }} \
+            --repository ${{ vars.IMAGE_NAME }} \
             --orderby time_desc \
             --output tsv 2>/dev/null || echo "")
           
@@ -58,7 +49,7 @@ jobs:
       - name: Log in to Azure Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.ACR_LOGIN_SERVER }}
+          registry: ${{ vars.ACR_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
@@ -68,20 +59,20 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.get-version.outputs.version }}
-            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+            ${{ vars.ACR_LOGIN_SERVER }}/${{ vars.IMAGE_NAME }}:${{ steps.get-version.outputs.version }}
+            ${{ vars.ACR_LOGIN_SERVER }}/${{ vars.IMAGE_NAME }}:latest
 
       - name: Set AKS context
         uses: azure/aks-set-context@v4
         with:
-          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
-          resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
 
       - name: Deploy using your deployment.yaml
         run: |
-          # Replace variables in deployment.yaml
-          sed -i "s|\${ACR_LOGIN_SERVER}|${{ env.ACR_LOGIN_SERVER }}|g" deployment.yaml
-          sed -i "s|\${IMAGE_NAME}|${{ env.IMAGE_NAME }}|g" deployment.yaml
+          # Replace variables in deployment.yaml using Repository Variables
+          sed -i "s|\${ACR_LOGIN_SERVER}|${{ vars.ACR_LOGIN_SERVER }}|g" deployment.yaml
+          sed -i "s|\${IMAGE_NAME}|${{ vars.IMAGE_NAME }}|g" deployment.yaml
           sed -i "s|\${VERSION}|${{ steps.get-version.outputs.version }}|g" deployment.yaml
           
           # Apply the deployment
@@ -90,6 +81,11 @@ jobs:
 
       - name: Verify deployment
         run: |
-          echo "Current deployment image:"
-          kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -o jsonpath='{.spec.template.spec.containers[0].image}'
+          echo "=== Deployment Status ==="
+          kubectl get deployment ${{ vars.DEPLOYMENT_NAME }} -n ${{ vars.NAMESPACE }}
           echo ""
+          echo "=== Current deployment image ==="
+          kubectl get deployment ${{ vars.DEPLOYMENT_NAME }} -n ${{ vars.NAMESPACE }} -o jsonpath='{.spec.template.spec.containers[0].image}'
+          echo ""
+          echo "=== Pods Status ==="
+          kubectl get pods -n ${{ vars.NAMESPACE }} -l app=${{ vars.IMAGE_NAME }}
